@@ -1,4 +1,4 @@
-# fireworks-mimo-rl
+# fireworks-dd-trn-benchmark
 
 Agentic RL training of **Qwen3.6-35B-A3B** (full-parameter GRPO) on **MiMo
 coding tasks**, using the Fireworks **Dedicated Training API** for
