@@ -1,0 +1,13 @@
+# secrets
+.env
+
+# data + generated task contexts (rebuild with `fetch` / `bake`)
+mimo-code/
+mimo-tasks-prepared/
+
+# run outputs (logs, trials, traces, metrics)
+runs/
+
+# python
+__pycache__/
+*.pyc

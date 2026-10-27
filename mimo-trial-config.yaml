@@ -1,0 +1,6 @@
+# Budgets capped to fit E2B Hobby's 1h sandbox session (harbor e2b.py patched to request 3600s).
+# agent 2400s + verifier 600s leaves ~600s for task setup and artifact collection.
+agent:
+  max_timeout_sec: 2400.0
+verifier:
+  max_timeout_sec: 600.0
