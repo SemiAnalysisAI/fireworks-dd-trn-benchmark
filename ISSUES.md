@@ -73,7 +73,7 @@ Environment: cookbook `57968a2237b663be33078d2747a28463983ae134`, fireworks SDK
   with 2,001 retry log lines, in two windows: 00:45-00:59 and 02:00-02:19 UTC
   on 2026-10-28. Deployment `qwen3p6-35b-a3b-1793142132`.
 - **Impact**: 43,800 s (~12 h) of training-rollout time spent in failed calls,
-  11% of all rollout time; in rollouts started on model versions 6, 7, 13 and
+  11% of all rollout time; in rollouts started on policy versions 6, 7, 13 and
   14 it was 35-50% of inference time. Only 43 of the 247 failed calls
   overlapped a weight sync, so hot-loading is not the main cause.
 - **Status**: cause unknown. Report with the deployment ID and time windows.

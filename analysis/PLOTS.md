@@ -59,8 +59,11 @@ FLOP/s, and the cost rates for GPU time and sandbox time.
 
 ## 2. Definitions
 
-- **Model version** of a rollout: number of weight publishes before the rollout
-  started. 0 is the base model; k is the policy after step k.
+- **Policy version** of a rollout: the policy being served when the rollout
+  started, i.e. the number of weight publishes before its start. 0 is the base
+  policy; k is the policy after step k. If the generator swaps weights while a
+  rollout is running, its later turns come from newer policies; it still counts
+  under its starting version.
 - **Sandbox time** of a rollout: wall time (end - start) minus inference time.
   **Tool execution** = agent time minus inference time. **Setup** = sandbox
   time minus tool execution minus verifier time (sandbox creation, installs and
@@ -95,7 +98,7 @@ FLOP/s, and the cost rates for GPU time and sandbox time.
 | Font | one sans-serif family throughout, base 10 pt |
 | Title | `<run id> · <plot name>`, 14 pt bold, left-aligned. No subtitle, no footnote |
 | Legend | one row above the plot area, left-aligned, no frame, 9.5 pt. Labels of one to three words, no parentheses |
-| Axis labels | short: `Step`, `Model version`, `Step time`, `MFU`, `Mean time per rollout`, `Tokens/s`, `Minutes`. No explanations |
+| Axis labels | short: `Step`, `Policy version`, `Step time`, `MFU`, `Mean time per rollout`, `Tokens/s`, `Minutes`. No explanations |
 | Gridlines | horizontal only, thin, `#e1e0d9` |
 | Frame | bottom axis line only (`#c3c2b7`); no tick marks; tick labels `#898781` |
 | Tick units | `5 min`, `40K`, `6%`; zero is written `0` |
@@ -129,22 +132,22 @@ FLOP/s, and the cost rates for GPU time and sandbox time.
   Rollout wait (grey). Eval wait and checkpoint time are left out.
 - Right y: MFU line (black), each point labeled (`6.4%`).
 
-### `rollout-time.png` · title `rollout time per model version`
-- x: model version (training rollouts only). y: minutes.
+### `rollout-time.png` · title `rollout time per policy version`
+- x: policy version (training rollouts only). y: minutes.
 - One stacked bar per version, bottom to top: mean inference time per rollout
   (blue), mean sandbox time per rollout (orange), and the weight sync that
   loaded that version (green; 0 for the base model).
 - When the version's failed share is 10% or more, label above the bar
   `35% inference` / `calls failed` (two lines) in dark blue, bold 7.5 pt.
 
-### `sandbox-time.png` · title `sandbox time per model version`
-- x: model version. Left y: minutes.
+### `sandbox-time.png` · title `sandbox time per policy version`
+- x: policy version. Left y: minutes.
 - One stacked bar of mean time per rollout, bottom to top: Setup, Tool
   execution, Verifier (light to dark orange).
 - Right y: Max concurrent sandboxes line (black), each point labeled.
 
-### `rollout-stats.png` · title `rollout stats per model version`
-- Three panels sharing the x axis (model version), top to bottom: Latency
+### `rollout-stats.png` · title `rollout stats per policy version`
+- Three panels sharing the x axis (policy version), top to bottom: Latency
   (minutes, blue), Sequence length (`K` tokens, green), Turns (orange).
 - In each panel, per version: a pale bar from min to max (width 0.42, panel
   colour at about 22% opacity), and the medians drawn as a line with dots, each
@@ -163,7 +166,7 @@ FLOP/s, and the cost rates for GPU time and sandbox time.
   - Backlog: green fill at about 13% opacity between the lines where Produced
     is ahead.
   - Background: alternating very light grey (`#f1f1ee`) columns, one per
-    served model version (publish to publish), labeled `v0`, `v1`, ... at the
+    served policy version (publish to publish), labeled `v0`, `v1`, ... at the
     top when the column is wide enough to fit the label.
   - Reading it: slope is rate, the vertical gap is the backlog, the horizontal
     gap is how long finished work waits to be trained, and both lines flat

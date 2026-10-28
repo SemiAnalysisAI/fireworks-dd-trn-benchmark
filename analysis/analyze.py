@@ -4,7 +4,7 @@ Inputs: ``metrics.jsonl`` (COOKBOOK_METRICS_FILE), ``client-phase-trace.json``
 (COOKBOOK_TRACE_FILE) and ``analysis/trials.jsonl`` (extract_trials.py).
 Output: ``analysis/analysis.json``, consumed by plots.py.
 
-Model version of a rollout = number of weight publishes before its trial
+Policy version of a rollout = number of weight publishes before its trial
 started (0 = base model). Publish time = end of the step's ``weight_sync`` span.
 """
 

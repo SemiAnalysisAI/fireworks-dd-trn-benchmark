@@ -50,7 +50,7 @@ def fmt(template: str) -> FuncFormatter:
 def version_axis(ax, versions: list[dict]) -> None:
     ax.set_xticks([v["version"] for v in versions])
     ax.set_xlim(-0.6, len(versions) - 0.4)
-    ax.set_xlabel("Model version")
+    ax.set_xlabel("Policy version")
 
 
 def nice_top(value: float, ticks: int = 5) -> float:
@@ -129,7 +129,7 @@ def step_time_mfu(a: dict, run: str, out: Path) -> None:
 
 def rollout_time(a: dict, run: str, out: Path) -> None:
     versions = a["versions"]
-    fig, ax = figure(f"{run} · rollout time per model version", (15, 6.6))
+    fig, ax = figure(f"{run} · rollout time per policy version", (15, 6.6))
     ax.set_ylim(0, max(v["e2e"] / v["n"] + v["weight_sync"] for v in versions) / 60 * 1.12)
     ppu = pt_per_unit(fig, ax)
     for v in versions:
@@ -153,7 +153,7 @@ def rollout_time(a: dict, run: str, out: Path) -> None:
 
 def sandbox_time(a: dict, run: str, out: Path) -> None:
     versions = a["versions"]
-    fig, ax = figure(f"{run} · sandbox time per model version", (15, 6.6))
+    fig, ax = figure(f"{run} · sandbox time per policy version", (15, 6.6))
     tops = [(v["setup"] + v["tool"] + v["verify"]) / v["n"] / 60 for v in versions]
     ax2 = ax.twinx()
     align_twin(ax, ax2, max(tops) * 1.15, max(v["max_concurrency"] for v in versions) * 1.12)
@@ -179,7 +179,7 @@ def request_stats(a: dict, run: str, out: Path) -> None:
     """Small multiples: min-max range bar per version with the medians joined as a line, one panel per stat."""
     versions = a["versions"]
     xs = np.array([v["version"] for v in versions], dtype=float)
-    fig, axes = figure(f"{run} · rollout stats per model version", (15, 8.5), nrows=3, sharex=True, gridspec_kw={"hspace": 0.15})
+    fig, axes = figure(f"{run} · rollout stats per policy version", (15, 8.5), nrows=3, sharex=True, gridspec_kw={"hspace": 0.15})
     stats = [("e2e_each", "Latency", 60, "{:.0f} min", BLUE), ("seqlen_each", "Sequence length", 1e3, "{:.0f}K", AQUA),
              ("turns_each", "Turns", 1, "{:.0f}", ORANGE)]
     for ax, (key, label, scale, template, color) in zip(axes, stats):
