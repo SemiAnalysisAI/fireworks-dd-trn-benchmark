@@ -263,7 +263,7 @@ def throughput(a: dict, run: str, out: Path) -> None:
     plt.close(fig)
 
 
-def eval_reward(a: dict, run: str, out: Path) -> None:
+def eval_pass_avg(a: dict, run: str, out: Path) -> None:
     """pass@k = share of tasks solved at least once in k attempts; avg@k = mean reward over all k attempts."""
     evals = a["evals"]
     xs = [e["step"] for e in evals]
@@ -285,11 +285,11 @@ def eval_reward(a: dict, run: str, out: Path) -> None:
                  Line2D([], [], color=BLUE, lw=2, marker="o", mec="white", label=f"avg@{k}"),
                  Line2D([], [], color=NEUTRAL, marker="o", ls="", label=f"Per task avg@{k}")], ncol=3, y=0.925)
     fig.subplots_adjust(left=0.08, right=0.98, top=0.84, bottom=0.11)
-    fig.savefig(out / "eval-reward.png")
+    fig.savefig(out / "eval-pass-avg.png")
     plt.close(fig)
 
 
-CHARTS = (eval_reward, step_time_mfu, rollout_time, sandbox_time, request_stats, throughput)
+CHARTS = (eval_pass_avg, step_time_mfu, rollout_time, sandbox_time, request_stats, throughput)
 
 
 def render(run_dir: Path) -> list[Path]:

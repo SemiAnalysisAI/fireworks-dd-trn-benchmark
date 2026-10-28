@@ -13,7 +13,7 @@ Example output (one 20-step GRPO run):
 
 | File | Question it answers |
 |---|---|
-| `eval-reward.png` | Is the policy getting better on held-out tasks? |
+| `eval-pass-avg.png` | Is the policy getting better on held-out tasks? |
 | `step-time-mfu.png` | Where does each optimizer step's wall time go, and how well is the trainer used while it runs? |
 | `rollout-time.png` | Where does a rollout's time go: inference, sandbox, or weight sync? |
 | `sandbox-time.png` | Where does sandbox time go, and how many sandboxes run at once? |
@@ -117,7 +117,7 @@ FLOP/s, and the cost rates for GPU time and sandbox time.
 
 ## 4. The plots
 
-### `eval-reward.png` · title `eval pass@k and avg@k`
+### `eval-pass-avg.png` · title `eval pass@k and avg@k`
 - x: eval step (e.g. 0, 5, 10, ...). y: score, 0 to 1.05.
 - pass@k line (orange), values labeled above each point; avg@k line (blue),
   values labeled below. Three decimals.
