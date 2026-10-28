@@ -22,6 +22,7 @@ generator deployment (2x B200) between steps. The intended B300 shape
 | `task-split.json` | Seeded (42) train/eval split: 80 train, 8 held-out eval tasks |
 | `AGENTS.md` | Setup + operating instructions for coding agents (start here) |
 | `fireworks-training-runs/` | Run manifests: approved plans, incidents, costs, outcomes |
+| `ISSUES.md` | Every error and blocker hit so far (Fireworks, cookbook, E2B, model/config), with cause, impact and fix |
 | `budget_watchdog.py` | Spend + stall watchdog that runs beside `train` and stops it at a limit |
 | `analysis/` | Post-run report: `report.py runs/<run>` decodes trials and writes the run's plots; [`PLOTS.md`](analysis/PLOTS.md) is the shareable plot spec |
 
