@@ -65,9 +65,12 @@ SETTINGS = SimpleNamespace(
     tokenizer_revision=None,
     renderer_name="qwen3_6_preserved",  # TITO-certified (qwen3.6-35b-a3b-preserved@995ad96e); plain "qwen3_6" has no production TITO certification
     tito_prompt_mode="full_history",  # "incremental" is experimental
-    # --- dedicated resources (shape pins 4x B300 full-param trainer +
-    #     1x B300 BF16 generator per replica; ~$75/hr list while up) ---
-    training_shape_id="accounts/fireworks/trainingShapes/qwen3p6-35b-a3b-262k",
+    # --- dedicated resources (shape pins 4x B200 full-param trainer +
+    #     2x B200 BF16 generator per replica; ~$78/hr list while up).
+    #     The B300 shape qwen3p6-35b-a3b-262k is blocked server-side since
+    #     2026-10-27: its generator resolves to serving 7.56.0, inside the
+    #     blocked range [7.55.0, 7.70.0). Switch back once it is >= 7.70.0. ---
+    training_shape_id="accounts/fireworks/trainingShapes/qwen3p6-35b-a3b-256k",
     deployment_shape=None,            # None -> generator resolved from the shape
     trainer_job_id=None,              # set to reattach an existing trainer
     deployment_id=None,               # set to reattach a deployment
@@ -75,7 +78,7 @@ SETTINGS = SimpleNamespace(
     sample_timeout=600,               # s per sampling request
     weight_sync_timeout=600,          # s per sampler hot-load
     skip_cleanup=False,               # True keeps trainer+deployment after exit
-    output_model_id="mimo-qwen3p6-rl-20step",  # keep the tuned model artifact
+    output_model_id="qwen3p6moe-mimorl-20step",  # keep the tuned model artifact
     # --- data / sandbox ---
     source_tasks_dir="./mimo-code/tasks",    # raw HF snapshot (2,698 tasks)
     harbor_dataset="./mimo-tasks-prepared",  # harness-baked task dir (bake output)
@@ -85,8 +88,8 @@ SETTINGS = SimpleNamespace(
     task_seed=42,
     harbor_registry_path=None,
     harbor_environment="e2b",         # no local Docker on this machine
-    harbor_trials_dir=Path("./runs/mimo-20step/trials"),  # keep per-trial records
-    harbor_trial_config="./mimo-trial-config.yaml",  # caps budgets to fit 1h E2B sandbox
+    harbor_trials_dir=Path("./runs/qwen3p6moe-mimorl-001/trials"),  # keep per-trial records
+    harbor_trial_config="./mimo-trial-config.yaml",  # agent/verifier caps: step-time tail control
     e2b_request_timeout=900.0,        # s; survives concurrent sandbox-create waves
     mimo_arm="bash",                  # mimoagent arm: "bash" or "cc"
     # E2B templates MUST be prebuilt once before rollout fan-out: concurrent
@@ -105,7 +108,7 @@ SETTINGS = SimpleNamespace(
     epochs=1,
     completions_per_prompt=8,         # GRPO group size
     prompt_groups_per_step=4,         # 4 tasks/step -> 32 rollouts/step, one wave
-    max_completion_tokens=2048,       # per model call
+    max_completion_tokens=8192,       # per model call; 2048 truncated ~30% of rollouts mid tool-call
     max_seq_len=65536,                # trajectory context budget (shape max 262144)
     temperature=1.0,
     learning_rate=1e-6,               # full-param; LoRA would use ~1e-5
@@ -115,8 +118,10 @@ SETTINGS = SimpleNamespace(
     # --- evaluation / observability ---
     sampling_only=False,              # True scores deployment_id, no trainer
     evaluation_every=5,               # holdout eval cadence (plus start and end)
+    eval_completions_per_prompt=3,    # 8 tasks x 3 = 24 trials, one wave; each eval
+                                      # blocks the next weight sync until its slowest trial ends
     evaluation_concurrency=32,
-    run_dir=Path("./runs/mimo-20step"),
+    run_dir=Path("./runs/qwen3p6moe-mimorl-001"),
     wandb_entity="",                  # "" disables W&B; metrics.jsonl always written
     wandb_project="harbor-rl-mimo",
     wandb_run_name=None,
@@ -166,6 +171,29 @@ def load_split(s: SimpleNamespace) -> dict[str, list[str]]:
     return split
 
 
+# The cookbook builds the TITO sidecar venv over the first `python3` on PATH,
+# but many MiMo images put an older interpreter (3.7-3.10) in /usr/local/bin,
+# and the sidecar pins (numpy 2.4.6) need >= 3.11 -- the template build fails.
+# Fall back to the apt python3 the same layer just installed. The task's own
+# python3 stays first on PATH, so agent and tests are unaffected.
+_SIDECAR_VENV = """python3 -c 'import sys; assert sys.version_info >= (3, 10), sys.version'; \\
+ python3 -m venv /opt/fireworks-tito; \\
+"""
+_SIDECAR_VENV_FIXED = """SIDECAR_PY=python3; \\
+ if ! python3 -c 'import sys; assert sys.version_info >= (3, 11)' 2>/dev/null; then SIDECAR_PY=/usr/bin/python3; fi; \\
+ "$SIDECAR_PY" -c 'import sys; assert sys.version_info >= (3, 11), sys.version'; \\
+ "$SIDECAR_PY" -m venv /opt/fireworks-tito; \\
+"""
+
+
+def fix_sidecar_python(task_dir: Path) -> None:
+    dockerfile = task_dir / "environment" / "Dockerfile"
+    text = dockerfile.read_text()
+    if text.count(_SIDECAR_VENV) != 1:
+        raise ValueError(f"{dockerfile}: sidecar venv block not found exactly once")
+    dockerfile.write_text(text.replace(_SIDECAR_VENV, _SIDECAR_VENV_FIXED))
+
+
 def bake(s: SimpleNamespace) -> None:
     from training.examples.harbor_rl.harnesses.mimoagent.prepare_tasks import prepare
 
@@ -174,7 +202,30 @@ def bake(s: SimpleNamespace) -> None:
     prepared = prepare(
         Path(s.source_tasks_dir), Path(s.harbor_dataset), task_names=names
     )
+    for name in names:
+        fix_sidecar_python(Path(s.harbor_dataset) / name)
     print(f"baked mimoagent harness into {len(prepared)} task contexts in {s.harbor_dataset}")
+
+
+def e2b_templates_not_ready(template_names: list[str]) -> dict[str, str]:
+    """Map each named template whose latest build is not 'ready' to its status."""
+    import os
+    import urllib.request
+
+    request = urllib.request.Request(
+        "https://api.e2b.dev/templates", headers={"X-API-KEY": os.environ["E2B_API_KEY"]}
+    )
+    with urllib.request.urlopen(request, timeout=60) as response:
+        templates = json.load(response)
+    status = {}
+    for template in templates:
+        for alias in template.get("aliases") or []:
+            status[alias] = template.get("buildStatus", "unknown")
+    return {
+        name: status.get(name.rsplit("/", 1)[-1], "missing")
+        for name in template_names
+        if status.get(name.rsplit("/", 1)[-1]) != "ready"
+    }
 
 
 def rollout_fn_factory(s: SimpleNamespace, run_dir: Path) -> RolloutFnFactory:
@@ -262,6 +313,12 @@ def train(s: SimpleNamespace) -> None:
             sum(1 for r in records if not r.existed),
             sum(1 for r in records if r.existed),
         )
+        # prebuild's "existed" is alias_exists(), which is also true for a
+        # template whose build errored or never ran; every sandbox of such a
+        # task would fail. Check real build status before spending GPU time.
+        not_ready = e2b_templates_not_ready([r.template_name for r in records])
+        if not_ready:
+            raise RuntimeError(f"E2B templates not ready (delete and rebuild): {not_ready}")
     factory = rollout_fn_factory(s, run_dir)
 
     if s.sampling_only:
@@ -277,7 +334,7 @@ def train(s: SimpleNamespace) -> None:
 
     evaluation_fn = make_fixed_evaluation(
         eval_rows,
-        completions_per_prompt=s.completions_per_prompt,
+        completions_per_prompt=s.eval_completions_per_prompt,
         max_concurrency=s.evaluation_concurrency,
     )
     main(

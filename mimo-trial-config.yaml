@@ -1,5 +1,5 @@
-# Budgets capped to fit E2B Hobby's 1h sandbox session (harbor e2b.py patched to request 3600s).
-# agent 2400s + verifier 600s leaves ~600s for task setup and artifact collection.
+# Agent/verifier budget caps: step-time tail control (trials past the cap are killed
+# and retried/discarded). Originally sized for E2B Hobby's 1h sandbox; kept on Pro.
 agent:
   max_timeout_sec: 2400.0
 verifier:

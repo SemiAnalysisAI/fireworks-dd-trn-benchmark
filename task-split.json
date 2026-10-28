@@ -7,7 +7,6 @@
   "format-code-task-000144",
   "format-code-task-000154",
   "format-code-task-000204",
-  "format-code-task-000216",
   "format-code-task-000327",
   "format-code-task-000335",
   "format-code-task-000371",
@@ -23,7 +22,6 @@
   "format-code-task-000583",
   "format-code-task-000655",
   "format-code-task-000734",
-  "format-code-task-000751",
   "format-code-task-000768",
   "format-code-task-000810",
   "format-code-task-000906",
@@ -58,17 +56,20 @@
   "format-code-task-001941",
   "format-code-task-001951",
   "format-code-task-001955",
+  "format-code-task-002039",
   "format-code-task-002081",
   "format-code-task-002103",
   "format-code-task-002132",
   "format-code-task-002351",
   "format-code-task-002482",
   "format-code-task-002493",
+  "format-code-task-002521",
   "format-code-task-002538",
   "format-code-task-002539",
   "format-code-task-002571",
   "format-code-task-002618",
   "format-code-task-002688",
+  "format-code-task-002696",
   "format-code-task-002745",
   "format-code-task-002750",
   "format-code-task-002801",
@@ -78,18 +79,50 @@
   "format-code-task-002923",
   "format-code-task-002954",
   "format-code-task-002957",
-  "format-code-task-002974",
   "format-code-task-003014",
   "format-code-task-003021"
  ],
  "eval": [
   "format-code-task-000772",
+  "format-code-task-000876",
   "format-code-task-001022",
   "format-code-task-001237",
-  "format-code-task-001495",
   "format-code-task-001749",
   "format-code-task-002144",
   "format-code-task-002598",
   "format-code-task-002976"
- ]
+ ],
+ "excluded": [
+  {
+   "task": "format-code-task-000216",
+   "split": "train",
+   "replacement": "format-code-task-002521",
+   "reason": "E2B template build: 'An internal error occurred' while uncompressing the 12 GB base image layer (3 identical attempts; build a3fc64e8-86e8-44ab-960a-e4be7a97b875)"
+  },
+  {
+   "task": "format-code-task-000751",
+   "split": "train",
+   "replacement": "format-code-task-002039",
+   "reason": "E2B base provisioning: image has a dead apt source (storage.googleapis.com/dart-archive, no Release file) so apt-get update fails (build ceb1be77-7274-4fe2-afd9-b925b69dfe43)"
+  },
+  {
+   "task": "format-code-task-002974",
+   "split": "train",
+   "replacement": "format-code-task-002696",
+   "reason": "E2B base provisioning: Debian 11 image with stale apt lists; openssh-server/sudo fetch 404 from security.debian.org (build 552683de-6b33-4e5a-a5c7-b4c496eac9ac)"
+  },
+  {
+   "task": "format-code-task-001495",
+   "split": "eval",
+   "replacement": "format-code-task-000876",
+   "reason": "E2B base provisioning: Debian 11 image with stale apt lists; openssh-server/sudo fetch 404 from security.debian.org (build 70e703ae-ffd5-4fb7-922e-29e9bd93702c)"
+  },
+  {
+   "task": "format-code-task-002127",
+   "split": "replacement candidate",
+   "replacement": null,
+   "reason": "E2B template build: 'An internal error occurred' (750 MB image; build 99a01a5e-1e2e-4b75-8726-ef4ca5392c9c); skipped"
+  }
+ ],
+ "replacement_method": "pool = data/tasks.jsonl tasks not in the split, shuffled with random.Random('42-replacements'); candidates baked + E2B-template-built in that order; first 3 ready -> train, next ready -> eval"
 }
